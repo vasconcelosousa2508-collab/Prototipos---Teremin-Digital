@@ -13,18 +13,17 @@ void loop() {
   int leituraLuz = analogRead(pinoLDR_Nota);
   int ajusteSensibilidade = analogRead(pinoLDR_Sens);
 
-  // MATEMÁTICA: Exatamente como antes. 
   // O valor lido no A1 agora define o limite máximo para o map do A0.
   int frequencia = map(leituraLuz, 0, ajusteSensibilidade, 261, 523);
 
-  // Filtro: Se a sombra no sensor de nota for maior que o limite do sensor de sensibilidade
+  // Se a sombra no sensor de nota for maior que o limite do sensor de sensibilidade
   if (leituraLuz < ajusteSensibilidade) {
     tone(pinoBuzzer, frequencia);
   } else {
     noTone(pinoBuzzer);
   }
 
-  // Monitor Serial para você ver os dois sensores interagindo
+  // Monitor Serial 
   Serial.print("Nota (A0): "); Serial.print(leituraLuz);
   Serial.print(" | Sensibilidade (A1): "); Serial.println(ajusteSensibilidade);
 
