@@ -49,3 +49,4 @@ print("Toque A, S, D, F, G, H, J, K | Esc para sair")
 with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem):
     with keyboard.Listener(on_press=ao_pressionar, on_release=ao_soltar) as listener:
         listener.join()
+# COMMITS FUNCIONAM?
