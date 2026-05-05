@@ -1,5 +1,10 @@
 # Arduino está enviando dados da leitura de sombra do LRD.
 
+import serial
+import numpy as np
+import sounddevice as sd
+
+
 # Configurações da Serial
 try:
     porta = serial.Serial('/dev/ttyACM0', 9600, timeout=0.1)
@@ -23,6 +28,8 @@ def audio_callback(outdata, frames, time, status):
     fase += frames
 
 
+
+
 with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem):
     while True:
 
@@ -30,9 +37,9 @@ with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem)
         
         if dados.isdigit(): 
             valor = int(dados)
-            print(f"{valor}/n/n")
+            print(valor)
 
         if valor < limiteSombra:
-            volume_atual = 2.0
+            volume_atual = 0.5
         else:
             volume_atual = 0.0
