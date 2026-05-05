@@ -15,31 +15,35 @@ except:
 # Configurações de Áudio
 amostragem = 44100
 frequencia = 440.0
-volume_atual = 0.0  
+volume_alvo = 0.0 
+
+volume_atual = 0.0
 fase = 0
 
-limiteSombra = 400
+limiteSombra = 250
 
 def audio_callback(outdata, frames, time, status):
-    global fase, volume_atual
+    global fase, volume_atual, volume_alvo
+    
     indices = np.arange(frames) + fase
-    # Gerando a onda
-    outdata[:, 0] = volume_atual * np.sin(2 * np.pi * frequencia * indices / amostragem)
+    
+    # Suavização simples para evitar estalos
+    # O volume atual tenta "alcançar" o volume alvo gradualmente
+    volume_atual = volume_atual + 0.1 * (volume_alvo - volume_atual)
+    
+    onda = volume_atual * np.sin(2 * np.pi * frequencia * indices / amostragem)
+    outdata[:, 0] = onda
     fase += frames
-
-
 
 
 with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem):
     while True:
-
         dados = porta.readline().decode('utf-8').strip()
-        
         if dados.isdigit(): 
             valor = int(dados)
             print(valor)
-
+            
         if valor < limiteSombra:
-            volume_atual = 0.5
+            volume_alvo = 1.0
         else:
-            volume_atual = 0.0
+            volume_alvo = 0.0
