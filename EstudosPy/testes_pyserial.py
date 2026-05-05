@@ -23,13 +23,16 @@ def audio_callback(outdata, frames, time, status):
     fase += frames
 
 
-while True:
-    dados = porta.readline()
-    print(dados.decode('utf-8'))
+with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem):
+    while True:
 
-    if int(dados) < limiteSombra:
-        volume_atual = 2.0
-    else:        volume_atual = 0.0
+        dados = porta.readline().decode('utf-8').strip()
+        
+        if dados.isdigit(): 
+            valor = int(dados)
+            print(f"{valor}/n/n")
 
-    with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem):
-        pass
+        if valor < limiteSombra:
+            volume_atual = 2.0
+        else:
+            volume_atual = 0.0
