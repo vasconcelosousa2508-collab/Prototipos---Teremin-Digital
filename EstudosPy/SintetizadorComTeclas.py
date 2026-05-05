@@ -28,7 +28,7 @@ def ao_pressionar(key):
     try:
         if key.char in notas:
             frequencia = notas[key.char]
-            volume_atual = 2.0  # Valor bruto
+            volume_atual = 0.5  # Valor bruto
     except AttributeError:
         pass
 
