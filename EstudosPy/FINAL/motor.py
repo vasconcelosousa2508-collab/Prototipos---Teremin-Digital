@@ -7,9 +7,8 @@ from queue import Queue
 amostragem = 44100
 CHUNK = 1024  
 limiteDistancia = 30
-volumeMaximo = 0.8  # Unificado com a trava de segurança do osciloscópio
+volumeMaximo = 0.8  
 
-# Banco de dados unificado que TODOS os arquivos vão ler e escrever
 params = {
     'freq_alvo': 261.63,
     'freq_atual': 261.63,
@@ -19,7 +18,6 @@ params = {
     'fase': 0.0
 }
 
-# Configuração fixa de notas do Arduino
 ESCALA_MUSICAL = [
     (4,  261.63),  # Dó (C4)
     (8, 293.66),  # Ré (D4)
@@ -31,13 +29,13 @@ ESCALA_MUSICAL = [
     (float('inf'), 523.25) # Dó Agudo (C5)
 ]
 
-# Fila compartilhada para o gráfico do osciloscópio extrair a forma de onda
+
+
 fila_onda = Queue()
 
 def audio_callback(outdata, frames, time_info, status):
     t = np.arange(frames) / amostragem
     
-    # Rampas de amortecimento
     params['vol_atual'] += 0.1 * (params['vol_alvo'] - params['vol_atual'])
     params['freq_atual'] += 0.08 * (params['freq_alvo'] - params['freq_atual'])
     
@@ -50,7 +48,7 @@ def audio_callback(outdata, frames, time_info, status):
     
     params['fase'] = (arg[-1] + (2 * np.pi * f / amostragem)) % (2 * np.pi)
     
-    # Alimenta a fila gráfica
+    
     fila_onda.put(onda.copy())
 
 def iniciar_audio():

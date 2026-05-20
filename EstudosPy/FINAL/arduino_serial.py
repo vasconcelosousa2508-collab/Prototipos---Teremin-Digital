@@ -1,4 +1,3 @@
-# Salve como: arduino_serial.py
 import serial
 import threading
 from motor import params, ESCALA_MUSICAL, limiteDistancia, volumeMaximo
