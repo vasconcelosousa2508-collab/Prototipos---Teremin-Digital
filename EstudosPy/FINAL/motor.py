@@ -6,7 +6,7 @@ from queue import Queue
 amostragem = 44100
 CHUNK = 1024  
 limiteDistancia = 30
-volumeMaximo = 0.8  
+volumeMaximo = 1.0  
 
 params = {
     'freq_alvo': 261.63,
