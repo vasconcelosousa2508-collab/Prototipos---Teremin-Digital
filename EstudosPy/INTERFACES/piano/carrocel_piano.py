@@ -3,13 +3,15 @@ import sounddevice as sd
 from pynput import keyboard
 import customtkinter as ctk
 import threading
+import math
 
-# --- CONFIGURAÇÕES DO SEU MOTOR DE ÁUDIO ---
+# --- CONFIGURAÇÕES DO MOTOR ---
 amostragem = 44100
+COR_FUNDO_RGB = (11, 3, 44)       # #0b032c
 COR_FUNDO_HEX = '#0b032c'
 
 params = {
-    'freq': 0.0,
+    'freq': 261.63, 
     'vol_alvo': 0.0,
     'vol_atual': 0.0,
     'fase': 0
@@ -21,17 +23,12 @@ notas = {
     'w': 277.18, 'e': 311.13, 'r': 369.99, 't': 415.30, 'y': 466.16  
 }
 
-tradutor_notas = {
-    'a': 'C',  'w': 'C#', 's': 'D',  'e': 'D#', 'd': 'E', 
-    'f': 'F',  'r': 'F#', 'g': 'G',  't': 'G#', 'h': 'A', 
-    'y': 'A#', 'j': 'B',  'k': 'C'
-}
-
-cores_notas = {
-    'C': '#ff005a', 'C#': '#ff4500', 'D': '#ff7d00', 'D#': '#ffa500',
-    'E': '#e6ff00', 'F': '#00ff8c', 'F#': '#00ffcc', 'G': '#00ebff',
-    'G#': '#26a6ff', 'A': '#508cff', 'A#': '#9400d3', 'B': '#d25aff'
-}
+escala_completa = [
+    ('C', 261.63), ('C#', 277.18), ('D', 293.66), ('D#', 311.13),
+    ('E', 329.63), ('F', 349.23), ('F#', 369.99), ('G', 392.00),
+    ('G#', 415.30), ('A', 440.00), ('A#', 466.16), ('B', 493.88),
+    ('C ', 523.25)
+]
 
 def audio_callback(outdata, frames, time_info, status):
     indices = np.arange(frames) + params['fase']
@@ -58,74 +55,106 @@ def ao_soltar(key):
         app.destroy()
         return False
 
-# --- MICRO-INTERFACE ---
-class MicroCarrosselNotas(ctk.CTkFrame):
+# --- COMPONENTE: CARROSSEL DESLIZANTE CINEMÁTICO ---
+class CarrosselDeslizante(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
-        self.configure(fg_color="transparent") 
+        self.configure(fg_color="transparent")
         
-        self.ordem_visual = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-        
+        # Guardamos a posição indexada de cada nota (0 a 12)
         self.labels_notas = {}
         
-        for i, nota_musical in enumerate(self.ordem_visual):
-            label = ctk.CTkLabel(
-                self, 
-                text=nota_musical, 
-                font=("Impact", 28),         # Fonte de peso pro estilo Synthwave
-                text_color="#2a1b5c"         # Cor padrão: apagada (roxo escuro)
-            )
-            label.grid(row=0, column=i, padx=12, pady=10)
+        for i, (nome_nota, freq_alvo) in enumerate(escala_completa):
+            label = ctk.CTkLabel(self, text=nome_nota, font=("Arial", 18, "bold"))
+            self.labels_notas[nome_nota] = {
+                'objeto': label,
+                'frequencia': freq_alvo,
+                'indice_escala': i
+            }
             
-            self.labels_notas[nota_musical] = label
-            
-        self.atualizar_carrossel()
+        self.atualizar_posicoes()
 
-    def atualizar_carrossel(self):
-        nota_ativa = None
-        if params['vol_atual'] > 0.01:
-            for tecla, freq in notas.items():
-                if abs(params['freq'] - freq) < 0.01:
-                    nota_ativa = tradutor_notas.get(tecla)
-                    break
+    def atualizar_posicoes(self):
+        # Largura total disponível para o componente se mover
+        largura_componente = self.winfo_width()
         
-        for nota_musical, label in self.labels_notas.items():
-            if nota_musical == nota_ativa:
-                cor_neon = cores_notas.get(nota_musical, '#ffffff')
-                label.configure(text_color=cor_neon, font=("Impact", 42))
-            else:
-                # SE NÃO FOR: Volta para o estado de repouso apagado
-                label.configure(text_color="#2a1b5c", font=("Impact", 28))
-                
-        # Agenda o próximo frame para daqui a 15 milissegundos
-        self.after(15, self.atualizar_carrossel)
+        # Evita rodar o cálculo antes da janela abrir e medir a largura real
+        if largura_componente <= 1:
+            largura_componente = 800 
+            
+        centro_x = largura_componente / 2
+        distancia_entre_notas = 70 # Distância em pixels entre cada letra na fita
+        
+        freq_atual = params['freq']
+        vol_atual = params['vol_atual']
+        
+        # 1. Descobre onde a frequência atual está na nossa escala indexada (0.0 a 12.0)
+        # Se nenhuma nota estiver tocando, a fita descansa no centro da primeira nota (Dó)
+        indice_atual_continuo = 0.0
+        if freq_atual > 0:
+            # Encontra a posição contínua baseada no logaritmo musical
+            # Isso garante que se a freq estiver entre C e D, o índice vai ser tipo 0.5
+            indice_atual_continuo = 12 * math.log2(freq_atual / escala_completa[0][1])
+            
+        # 2. Atualiza a posição física, tamanho e opacidade de cada nota baseado no deslize
+        for nome_nota, dados in self.labels_notas.items():
+            label = dados['objeto']
+            idx_nota = dados['indice_escala']
+            
+            # Distância física relativa do índice atual
+            distancia_indices = idx_nota - indice_atual_continuo
+            
+            # Multiplica a distância pelo espaçamento em pixels para achar o X na tela
+            posicao_x = centro_x + (distancia_indices * distancia_entre_notas)
+            
+            # --- CÁLCULO DE DESTAQUE (TAMANHO E OPACIDADE) ---
+            # Quanto mais perto do centro_x, maior o fator (1.0 no centro, 0.0 nas bordas)
+            distancia_do_centro = abs(posicao_x - centro_x)
+            
+            # Notas somem/encolhem completamente se passarem de 180 pixels do centro
+            fator_foco = 1.0 - (distancia_do_centro / 180)
+            fator_foco = max(0.0, min(1.0, fator_foco))
+            
+            # Ajuste de tamanho dinâmico (Arial Bold Branca)
+            tamanho_fonte = int(18 + (26 * fator_foco)) # Vai de 18 a 44 conforme chega no centro
+            
+            # --- EFEITO DE OPACIDADE (BRANCO PARA ROXO ESCURO) ---
+            # Cor alvo: Branco Puro (255, 255, 255)
+            r = int(COR_FUNDO_RGB[0] + (255 - COR_FUNDO_RGB[0]) * fator_foco)
+            g = int(COR_FUNDO_RGB[1] + (255 - COR_FUNDO_RGB[1]) * fator_foco)
+            b = int(COR_FUNDO_RGB[2] + (255 - COR_FUNDO_RGB[2]) * fator_foco)
+            cor_hex = f"#{r:02x}{g:02x}{b:02x}"
+            
+            # Modifica as propriedades visuais
+            label.configure(font=("Arial", tamanho_fonte, "bold"), text_color=cor_hex)
+            
+            # Move fisicamente a nota na tela (centralizando o texto usando anchor='center')
+            label.place(x=posicao_x, y=40, anchor='center')
+            
+        self.after(15, self.atualizar_posicoes)
 
-# --- MOLDURA PRINCIPAL PARA TESTE ISOLADO ---
+# --- MOLDURA PRINCIPAL ---
 class JanelaTeste(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Teste Isolado: Carrossel de Notas")
-        self.geometry("650x150")
+        self.title("Carrossel Mecânico Deslizante")
+        self.geometry("800x150")
         self.configure(fg_color=COR_FUNDO_HEX)
         
-        # Instancia a nossa micro-interface e centraliza na tela
-        self.carrossel = MicroCarrosselNotas(self)
-        self.carrossel.pack(expand=True, pady=20)
+        # Marcador fixo central (opcional, só para mostrar onde é o centro perfeito)
+        self.marcador = ctk.CTkLabel(self, text="▼", font=("Arial", 16), text_color="#3a2575")
+        self.marcador.place(x=400, y=10, anchor='center')
+        
+        self.carrossel = CarrosselDeslizante(self, width=800, height=120)
+        self.carrossel.pack(fill="both", expand=True)
 
-# --- INICIALIZAÇÃO DO PROGRAMA ---
 if __name__ == "__main__":
-    # 1. Liga o motor de som
     stream = sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem)
     stream.start()
     
-    # 2. Liga o teclado na Thread paralela
     ouvinte = keyboard.Listener(on_press=ao_pressionar, on_release=ao_soltar)
-    thread_teclado = threading.Thread(target=ouvinte.start, daemon=True)
-    thread_teclado.start()
+    threading.Thread(target=ouvinte.start, daemon=True).start()
     
-    # 3. Abre a interface de testes
     app = JanelaTeste()
     app.mainloop()
-    
-    # Desliga o som ao fechar
     stream.stop()
