@@ -14,7 +14,9 @@ params = {
     'freq_visual': 261.63, 
     'vol_alvo': 0.0,
     'vol_atual': 0.0,        
-    'fase': 0.0
+    'fase': 0.0,
+    'leitura1': 0,  
+    'leitura2': 0   
 }
 
 ESCALA_MUSICAL = [

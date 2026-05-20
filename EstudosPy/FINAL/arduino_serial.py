@@ -11,17 +11,21 @@ except Exception as e:
     porta = None
 
 def processar_dados_sensores(leitura_vol, leitura_freq):
-    # Sensor 1 - Volume
+    params['leitura1'] = leitura_vol
+    params['leitura2'] = leitura_freq
+
     if leitura_vol <= limiteDistancia:
         proporcao = (limiteDistancia - leitura_vol) / limiteDistancia
         params['vol_alvo'] = (proporcao ** 2) * volumeMaximo
         
-        # Sensor 2 - Notas
+        # Se o sensor de notas também detectar a mão
         if leitura_freq <= limiteDistancia:
             for limiar, frequencia in ESCALA_MUSICAL:
                 if leitura_freq < limiar:
                     params['freq_alvo'] = frequencia
                     break
+        else:
+            params['freq_alvo'] = 261.63 
     else:
         params['vol_alvo'] = 0.0
         params['freq_alvo'] = 261.63
@@ -44,7 +48,6 @@ def _loop_leitura(ouvinte_teclado):
         porta.close()
 
 def iniciar_conexao_arduino(ouvinte_teclado):
-    """Dispara a leitura USB em background sem travar o programa principal"""
     thread = threading.Thread(target=_loop_leitura, args=(ouvinte_teclado,), daemon=True)
     thread.start()
     return thread
