@@ -1,4 +1,3 @@
-# Salve como: motor.py
 import numpy as np
 import sounddevice as sd
 from queue import Queue
