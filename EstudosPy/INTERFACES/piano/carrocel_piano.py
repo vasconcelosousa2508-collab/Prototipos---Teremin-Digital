@@ -12,6 +12,7 @@ COR_FUNDO_HEX = '#0b032c'
 
 params = {
     'freq': 261.63, 
+    'freq_visual': 261.63, # Nova variável que cria a animação e a inércia!
     'vol_alvo': 0.0,
     'vol_atual': 0.0,
     'fase': 0
@@ -50,18 +51,19 @@ def ao_soltar(key):
         letra = key.char
         if letra in notas:
             params['vol_alvo'] = 0.0
+            # Ao soltar, define a frequência alvo de volta para o Dó base para o carrossel recuar
+            params['freq'] = 261.63
     except AttributeError: pass
     if key == keyboard.Key.esc:
         app.destroy()
         return False
 
-# --- COMPONENTE: CARROSSEL DESLIZANTE CINEMÁTICO ---
+# --- COMPONENTE: CARROSSEL DESLIZANTE COM INÉRCIA VISUAL ---
 class CarrosselDeslizante(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         self.configure(fg_color="transparent")
         
-        # Guardamos a posição indexada de cada nota (0 a 12)
         self.labels_notas = {}
         
         for i, (nome_nota, freq_alvo) in enumerate(escala_completa):
@@ -75,75 +77,66 @@ class CarrosselDeslizante(ctk.CTkFrame):
         self.atualizar_posicoes()
 
     def atualizar_posicoes(self):
-        # Largura total disponível para o componente se mover
         largura_componente = self.winfo_width()
-        
-        # Evita rodar o cálculo antes da janela abrir e medir a largura real
         if largura_componente <= 1:
             largura_componente = 800 
             
         centro_x = largura_componente / 2
-        distancia_entre_notas = 70 # Distância em pixels entre cada letra na fita
+        distancia_entre_notas = 75 # Espaçamento elegante entre as letras
         
-        freq_atual = params['freq']
-        vol_atual = params['vol_atual']
+        # --- MOTOR DA ANIMAÇÃO (FÍSICA DE INTERPOLAÇÃO) ---
+        # A freq_visual corre atrás da freq_alvo de forma suavizada (0.12 dita a velocidade do deslize)
+        params['freq_visual'] += 0.12 * (params['freq'] - params['freq_visual'])
         
-        # 1. Descobre onde a frequência atual está na nossa escala indexada (0.0 a 12.0)
-        # Se nenhuma nota estiver tocando, a fita descansa no centro da primeira nota (Dó)
-        indice_atual_continuo = 0.0
-        if freq_atual > 0:
-            # Encontra a posição contínua baseada no logaritmo musical
-            # Isso garante que se a freq estiver entre C e D, o índice vai ser tipo 0.5
-            indice_atual_continuo = 12 * math.log2(freq_atual / escala_completa[0][1])
+        # Converte a frequência visual amortecida para a escala contínua de índices
+        indice_atual_continuo = 12 * math.log2(params['freq_visual'] / escala_completa[0][1])
             
-        # 2. Atualiza a posição física, tamanho e opacidade de cada nota baseado no deslize
+        # Atualiza a posição física de cada label na fita
         for nome_nota, dados in self.labels_notas.items():
             label = dados['objeto']
             idx_nota = dados['indice_escala']
             
-            # Distância física relativa do índice atual
+            # Calcula o deslocamento linear baseado na frequência amortecida
             distancia_indices = idx_nota - indice_atual_continuo
-            
-            # Multiplica a distância pelo espaçamento em pixels para achar o X na tela
             posicao_x = centro_x + (distancia_indices * distancia_entre_notas)
             
-            # --- CÁLCULO DE DESTAQUE (TAMANHO E OPACIDADE) ---
-            # Quanto mais perto do centro_x, maior o fator (1.0 no centro, 0.0 nas bordas)
+            # Distância do centro para aplicar escala e opacidade
             distancia_do_centro = abs(posicao_x - centro_x)
             
-            # Notas somem/encolhem completamente se passarem de 180 pixels do centro
-            fator_foco = 1.0 - (distancia_do_centro / 180)
+            # Fator de foco: 1.0 no centro, vai sumindo conforme se afasta
+            fator_foco = 1.0 - (distancia_do_centro / 200)
             fator_foco = max(0.0, min(1.0, fator_foco))
             
-            # Ajuste de tamanho dinâmico (Arial Bold Branca)
-            tamanho_fonte = int(18 + (26 * fator_foco)) # Vai de 18 a 44 conforme chega no centro
+            # Curva matemática para o crescimento ficar mais agressivo e lindo no centro
+            fator_escala = math.pow(fator_foco, 2)
             
-            # --- EFEITO DE OPACIDADE (BRANCO PARA ROXO ESCURO) ---
-            # Cor alvo: Branco Puro (255, 255, 255)
+            # Redimensionamento suave da fonte Arial Bold
+            tamanho_fonte = int(18 + (28 * fator_escala)) 
+            
+            # Esmaecimento contínuo da cor (Branco para Roxo de fundo)
             r = int(COR_FUNDO_RGB[0] + (255 - COR_FUNDO_RGB[0]) * fator_foco)
             g = int(COR_FUNDO_RGB[1] + (255 - COR_FUNDO_RGB[1]) * fator_foco)
             b = int(COR_FUNDO_RGB[2] + (255 - COR_FUNDO_RGB[2]) * fator_foco)
             cor_hex = f"#{r:02x}{g:02x}{b:02x}"
             
-            # Modifica as propriedades visuais
+            # Aplica os resultados visuais gerados pela física
             label.configure(font=("Arial", tamanho_fonte, "bold"), text_color=cor_hex)
+            label.place(x=posicao_x, y=45, anchor='center')
             
-            # Move fisicamente a nota na tela (centralizando o texto usando anchor='center')
-            label.place(x=posicao_x, y=40, anchor='center')
-            
-        self.after(15, self.atualizar_posicoes)
+        # Roda a 60 FPS estáveis para a animação ficar ultra fluida
+        self.after(16, self.atualizar_posicoes)
 
 # --- MOLDURA PRINCIPAL ---
 class JanelaTeste(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Carrossel Mecânico Deslizante")
+        self.title("Fita Volante Animada - Visão Teclado/Theremin")
         self.geometry("800x150")
         self.configure(fg_color=COR_FUNDO_HEX)
         
-        # Marcador fixo central (opcional, só para mostrar onde é o centro perfeito)
-        self.marcador = ctk.CTkLabel(self, text="▼", font=("Arial", 16), text_color="#3a2575")
-        self.marcador.place(x=400, y=10, anchor='center')
+        # Marcador discreto do centro do velocímetro
+        self.marcador = ctk.CTkLabel(self, text="▼", font=("Arial", 14), text_color="#3a2575")
+        self.marcador.place(x=400, y=12, anchor='center')
         
         self.carrossel = CarrosselDeslizante(self, width=800, height=120)
         self.carrossel.pack(fill="both", expand=True)
