@@ -6,7 +6,6 @@ from queue import Queue
 
 # --- CONFIGURAÇÕES ---
 amostragem = 44100
-# Reduzimos para 1024 para o gráfico ficar muito mais leve e rápido!
 CHUNK = 1024  
 
 COR_FUNDO_HEX = '#0b032c'
@@ -31,7 +30,7 @@ volumes = {
 
 fila_onda = Queue()
 
-# --- MAPA DE CORES REAJUSTADO PARA O FUNDO AZUL ESCURO ---
+# --- CORES ---
 escala_cores = [
     (261.63, (255, 0, 90)),    # Dó - Vermelho Neon
     (293.66, (255, 125, 0)),   # Ré - Laranja Elétrico
@@ -101,7 +100,6 @@ def ao_pressionar(key):
     global tecla_atual
     try:
         letra = key.char
-        # Se o sistema operacional ficar repetindo a tecla por estar segurada, ignora!
         if letra == tecla_atual:
             return
             
@@ -125,18 +123,16 @@ def ao_soltar(key):
     if key == keyboard.Key.esc:
         return False
 
-# --- LOOP PRINCIPAL DE RENDERIZAÇÃO (ONDA CORRENDO SOLTA) ---
+# --- RENDERIZAÇÃO ---
 with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem, blocksize=CHUNK):
     with keyboard.Listener(on_press=ao_pressionar, on_release=ao_soltar) as listener:
         while listener.running:
             dados_da_onda = None
             
-            # Esvazia o passado e pega o bloco mais novo da fila
             while not fila_onda.empty():
                 dados_da_onda = fila_onda.get() 
             
             if dados_da_onda is not None:
-                # MANDANDO OS DADOS BRUTOS (Sem gatilho = Onda fluida e correndo na tela)
                 line.set_ydata(dados_da_onda)
                 
                 if params['vol_atual'] > 0.001:
@@ -149,5 +145,4 @@ with sd.OutputStream(channels=1, callback=audio_callback, samplerate=amostragem,
                 except:
                     break
             
-            # Loop de eventos nativo para dar estabilidade ao Matplotlib
             fig.canvas.start_event_loop(0.001)

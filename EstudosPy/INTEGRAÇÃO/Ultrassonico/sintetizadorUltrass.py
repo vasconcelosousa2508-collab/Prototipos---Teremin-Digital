@@ -6,7 +6,7 @@ from pynput import keyboard
 # --- CONFIGURAÇÕES ---
 porta_config = '/dev/ttyACM0' # String para a conexão inicial
 amostragem = 44100
-limiteDistancia = 30 
+limiteDistancia = 30
 volumeMaximo = 1.0
 
 params = {
@@ -18,15 +18,16 @@ params = {
 }
 
 ESCALA_MUSICAL = [
-    (8,  261.63),  # Dó (C4)
-    (12, 293.66),  # Ré (D4)
-    (16, 329.63),  # Mi (E4)
-    (20, 349.23),  # Fá (F4)  
-    (24, 392.00),  # Sol (G4)
-    (28, 440.00),  # Lá (A4)
-    (32, 493.88),  # Si (B4)
+    (4,  261.63),  # Dó (C4)
+    (8, 293.66),  # Ré (D4)
+    (12, 329.63),  # Mi (E4)
+    (16, 349.23),  # Fá (F4)  
+    (20, 392.00),  # Sol (G4)
+    (24, 440.00),  # Lá (A4)
+    (28, 493.88),  # Si (B4)
     (float('inf'), 523.25) # Dó Agudo (C5)
 ]
+
 
 try:
     porta = serial.Serial(porta_config, 9600, timeout=0.05)
