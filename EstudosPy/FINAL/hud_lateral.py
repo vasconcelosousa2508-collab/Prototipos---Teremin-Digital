@@ -17,15 +17,12 @@ COR_DINAMICA = '#eb68a6'
 
 class HudLateral(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
-        # border_width=0 e fg_color transparente matam qualquer linha branca residual
         super().__init__(master, border_width=0, fg_color="transparent", **kwargs)
         
-        # Estruturas gráficas com tamanhos de canvas bem maiores (Largura 5.5 e Altura 1.4)
         self.fig_d1, self.ax_d1 = self._criar_figura_base(3.5, 1.4)
         self.fig_d2, self.ax_d2 = self._criar_figura_base(3.5, 1.4)
         self.fig_onda, self.ax_onda = self._criar_figura_base(6.0, 1.3)
         
-        # Fontes matemáticas do LaTeX aumentadas para 36 e 40!
         self.txt_mat_d1 = self.ax_d1.text(0.5, 0.5, "", color='#ffffff', fontsize=36, va='center', ha='center')
         self.txt_mat_d2 = self.ax_d2.text(0.5, 0.5, "", color='#ffffff', fontsize=36, va='center', ha='center')
         self.txt_mat_onda = self.ax_onda.text(0.5, 0.5, "", color='#ffffff', fontsize=40, va='center', ha='center')

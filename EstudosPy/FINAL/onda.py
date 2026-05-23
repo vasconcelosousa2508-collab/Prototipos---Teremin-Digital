@@ -60,8 +60,8 @@ class OsciloscopioNeon(ctk.CTkFrame):
         self.fig.patch.set_facecolor(COR_FUNDO_HEX)
         self.ax.set_ylim(-1.1, 1.1)
         self.ax.set_xlim(0, CHUNK)
-        self.ax.axis('off') # Remove bordas, números e eixos (Estilo HUD Cyberpunk)
-
+        self.ax.axis('off') 
+        
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
         

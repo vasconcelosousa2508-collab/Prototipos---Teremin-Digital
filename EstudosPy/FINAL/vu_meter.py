@@ -15,7 +15,7 @@ class VuMeterTheremin(ctk.CTkFrame):
         super().__init__(master, **kwargs)
         self.configure(fg_color="transparent")
         
-        self.label = ctk.CTkLabel(self, text="Volume do Sensor", font=("Arial", 14, "bold"), text_color="#ffffff")
+        self.label = ctk.CTkLabel(self, text="", font=("Arial", 14, "bold"), text_color="#ffffff")
         self.label.pack(pady=(10, 5))
         
         self.frame_vu = ctk.CTkFrame(self, fg_color="transparent")
